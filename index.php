@@ -1,9 +1,9 @@
 <?php
-#download_all_overviews();
+download_all_overviews();
 $all_dates = scrape_from_files();
 
-#$json = html_entity_decode( json_encode($all_dates)); //returns utf8 encoded data or false
-#file_put_contents('dates.json',$json);
+$json = html_entity_decode( json_encode($all_dates)); //returns utf8 encoded data or false
+file_put_contents('dates.json2',$json);
 
 
 
@@ -20,25 +20,25 @@ function build_ical( $all_dates )
     }
 
 
-    foreach( $all_dates AS $commitee)
+    foreach( $all_dates AS $commitee )
     {
             
-            $out =  "\nBEGIN:VCALENDAR",
-                    "\nVERSION:2.0",
-                    "\nPRODID:http://www.example.com/calendarapplication/",
-                    "\nMETHOD:PUBLISH",
-                    "\nBEGIN:VEVENT",
-                    "\nUID:461092315540@example.com",
-                    '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de',
-                    "\nLOCATION:",
-                    "\nSUMMARY:",
-                    "\nDESCRIPTION:",
-                    "\nCLASS:PUBLIC",
-                    "\nDTSTART:20060910T220000Z",
-                    "\nDTEND:20060919T215900Z",
-                    "\nDTSTAMP:20060812T125900Z",
-                    "\nEND:VEVENT",
-                    "\nEND:VCALENDAR",
+            $out =  "\nBEGIN:VCALENDAR".
+                    "\nVERSION:2.0".
+                    "\nPRODID:http://www.example.com/calendarapplication/".
+                    "\nMETHOD:PUBLISH".
+                    "\nBEGIN:VEVENT".
+                    "\nUID:461092315540@example.com".
+                    '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
+                    "\nLOCATION:".
+                    "\nSUMMARY:".
+                    "\nDESCRIPTION:".
+                    "\nCLASS:PUBLIC".
+                    "\nDTSTART:20060910T220000Z".
+                    "\nDTEND:20060919T215900Z".
+                    "\nDTSTAMP:20060812T125900Z".
+                    "\nEND:VEVENT".
+                    "\nEND:VCALENDAR".
                     "\n\n";
     }
 
@@ -68,7 +68,8 @@ END:VCALENDAR
 # gets all session dates from the files in 
 function scrape_from_files()
 {
-    $folder = './pages/';
+    $folder = './page/';
+    if( is_dir($folder) == false ) mkdir( $folder );
     $files = scandir($folder);
     $files = array_slice($files, 2); //cut away . and .. 
     date_default_timezone_set('Europe/Berlin');
