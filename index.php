@@ -32,14 +32,14 @@ function build_ical( $all_dates )
     {
         $out .= 'BEGIN:VCALENDAR'.
                 "\nVERSION:2.0".
-                "\nPRODID:http://www.example.com/calendarapplication/".
+                "\nPRODID:https://github.com/RobTranquillo/stadtrat_dresden_sitzungsplan/".
                 "\nMETHOD:PUBLISH".
                 "\n\n";
         
         foreach( $committee['dates'] AS $session )
         {
             $out .= "\nBEGIN:VEVENT".
-                    "\nUID:461092315540@example.com".
+                    "\nUID:".md5( $committee.$session ).
                     '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
                     "\nLOCATION:".
                     "\nSUMMARY:".
