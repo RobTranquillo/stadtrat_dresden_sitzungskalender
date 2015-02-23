@@ -2,7 +2,7 @@
 $url = 'http://ratsinfo.dresden.de/gr0040.php';
 $folder = "./pages/";
 
-download_all_overviews( $url, $folder );
+#download_all_overviews( $url, $folder );
 $all_dates = scrape_files( $folder );
 
 //write json file
@@ -25,7 +25,6 @@ function build_ical( $all_dates )
     function getIcalDate($time)
     {
         return date('Ymd\THis', $time);
-        #return $incl_time ? date('Ymd\THis', $time) : date('Ymd', $time);
     }
 
     $out = '';
@@ -54,7 +53,7 @@ function build_ical( $all_dates )
         }
         $out .= "\nEND:VCALENDAR";
         
-        $filename = $ical_folder . $committee['committee'] .'.ical';
+        $filename = $ical_folder . $committee['filename'] .'.ical';
         file_put_contents( $filename, $out );
         
     }
@@ -96,9 +95,6 @@ function scrape_files()
     foreach( $files AS $file)
     {
         $html = file_get_contents( $folder.$file );
-        
-        // $html = mb_convert_encoding($html, 'UTF-8');
-        
         $committee = get_comm($html);
         $end = 0;
         $dates = array();
@@ -128,7 +124,7 @@ function scrape_files()
             else array_push( $dates, $uxts );
         }
         
-        array_push( $all_dates, array( 'committee'=> $committee, 'dates' => $dates ) );
+        array_push( $all_dates, array( 'committee'=> $committee, 'dates' => $dates, 'filename' => $file ) );
     }
 
     if(count($all_dates) > 0 ) return $all_dates;
@@ -174,7 +170,8 @@ function download_all_overviews( $url , $folder_path )
         $committee_name_start = strpos($tds[0],'>', strpos($tds[0], '<a '));
         $committee_name_end = strpos($tds[0],'</a>', $committee_name_start) - 1;
         $committee_name = substr($tds[0], $committee_name_start+1, $committee_name_end - $committee_name_start);
-        if( trim($committee_name) == '' || substr_count($committee_name,'<!--S') > 0) continue;
+        $committee_name = html_entity_decode( trim( str_replace('/', '_', $committee_name) ) );
+        if( $committee_name == '' || substr_count($committee_name,'<!--S') > 0) continue;
 
         $sessions_cal_start = strpos($tds[3],'href='); 
         if( $sessions_cal_start !== false)         
@@ -183,7 +180,7 @@ function download_all_overviews( $url , $folder_path )
             $sessions_cal_end = strpos($tds[3],'"', $sessions_cal_start);
             $sessions_cal_link = substr($tds[3], $sessions_cal_start, $sessions_cal_end - $sessions_cal_start); 
             $sessions_cal_link = 'http://ratsinfo.dresden.de/' . html_entity_decode($sessions_cal_link);
-            array_push( $committee, array(html_entity_decode($committee_name),$sessions_cal_link ));
+            array_push( $committee, array($committee_name, $sessions_cal_link ));
         }
     }
 
@@ -196,16 +193,12 @@ function download_all_overviews( $url , $folder_path )
 ######################
 function download_sessions( $arr , $savepath)
 {
-    if( is_dir($savepath) == false ) mkdir( $savepath );
     $handle = fopen( $arr[1] , "rb");
     $contents = stream_get_contents($handle);
     fclose($handle);
     
-    $filename = $arr[0];
-    $filename = str_replace(' ','_',$filename);
-    $filename = str_replace('/','_',$filename);
-    $filename = str_replace('\\','_',$filename);
-    $filename = $savepath . $filename;
+    if( is_dir($savepath) == false ) mkdir( $savepath );
+    $filename = $savepath . $arr[0];
     echo "\nWrite: $filename";
     file_put_contents( $filename, $contents );
 }
