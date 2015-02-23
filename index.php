@@ -1,11 +1,16 @@
 <?php
-download_all_overviews();
-$all_dates = scrape_from_files();
+$url = 'http://ratsinfo.dresden.de/gr0040.php';
+$folder = "./pages/";
 
-$json = html_entity_decode( json_encode($all_dates)); //returns utf8 encoded data or false
+download_all_overviews( $url, $folder );
+$all_dates = scrape_files( $folder );
+
+//write json file
+$json = json_encode($all_dates); 
 file_put_contents('dates.json2',$json);
 
-
+//write ical file
+build_ical($all_dates);
 
 
 ######################
@@ -14,33 +19,47 @@ file_put_contents('dates.json2',$json);
 # and one file for all commitees   
 function build_ical( $all_dates )
 {
-    function getIcalDate($time, $incl_time = true)
+    $ical_folder  = './ical/';
+    if( is_dir($ical_folder) == false ) mkdir($ical_folder);
+    
+    function getIcalDate($time)
     {
-        return $incl_time ? date('Ymd\THis', $time) : date('Ymd', $time);
+        return date('Ymd\THis', $time);
+        #return $incl_time ? date('Ymd\THis', $time) : date('Ymd', $time);
     }
 
-
-    foreach( $all_dates AS $commitee )
+    $out = '';
+    foreach( $all_dates AS $committee )
     {
-            
-            $out =  "\nBEGIN:VCALENDAR".
-                    "\nVERSION:2.0".
-                    "\nPRODID:http://www.example.com/calendarapplication/".
-                    "\nMETHOD:PUBLISH".
-                    "\nBEGIN:VEVENT".
+        $out .= 'BEGIN:VCALENDAR'.
+                "\nVERSION:2.0".
+                "\nPRODID:http://www.example.com/calendarapplication/".
+                "\nMETHOD:PUBLISH".
+                "\n\n";
+        
+        foreach( $committee['dates'] AS $session )
+        {
+            $out .= "\nBEGIN:VEVENT".
                     "\nUID:461092315540@example.com".
                     '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
                     "\nLOCATION:".
                     "\nSUMMARY:".
-                    "\nDESCRIPTION:".
+                    "\nDESCRIPTION: ".$committee['committee'].
                     "\nCLASS:PUBLIC".
-                    "\nDTSTART:20060910T220000Z".
-                    "\nDTEND:20060919T215900Z".
-                    "\nDTSTAMP:20060812T125900Z".
+                    "\nDTSTART:".getIcalDate( $session ).
+                    "\nDTEND:".getIcalDate( $session + 7200 ).
+                    "\nDTSTAMP:".getIcalDate( mktime() ).
                     "\nEND:VEVENT".
-                    "\nEND:VCALENDAR".
                     "\n\n";
+        }
+        $out .= "\nEND:VCALENDAR";
+        
+        $filename = $ical_folder . $committee['committee'] .'.ical';
+        file_put_contents( $filename, $out );
+        
     }
+
+    file_put_contents( 'all.ical', $out );
 
     
 /*
@@ -66,10 +85,9 @@ END:VCALENDAR
     
 ######################
 # gets all session dates from the files in 
-function scrape_from_files()
+function scrape_files()
 {
-    $folder = './page/';
-    if( is_dir($folder) == false ) mkdir( $folder );
+    $folder = './pages/';
     $files = scandir($folder);
     $files = array_slice($files, 2); //cut away . and .. 
     date_default_timezone_set('Europe/Berlin');
@@ -77,7 +95,6 @@ function scrape_from_files()
 
     foreach( $files AS $file)
     {
-        // echo "\n -> $folder$file";
         $html = file_get_contents( $folder.$file );
         
         // $html = mb_convert_encoding($html, 'UTF-8');
@@ -133,11 +150,9 @@ function get_comm( $str )
     
 ######################
 # Main Step one
-function download_all_overviews()
+function download_all_overviews( $url , $folder_path )
 {
-    $path = 'http://ratsinfo.dresden.de/gr0040.php';
-
-    $html = file_get_contents($path);
+    $html = file_get_contents( $url );
     $committee = array();
 
     $tab_start  = strpos( $html , '<table ');
@@ -168,25 +183,29 @@ function download_all_overviews()
             $sessions_cal_end = strpos($tds[3],'"', $sessions_cal_start);
             $sessions_cal_link = substr($tds[3], $sessions_cal_start, $sessions_cal_end - $sessions_cal_start); 
             $sessions_cal_link = 'http://ratsinfo.dresden.de/' . html_entity_decode($sessions_cal_link);
-            array_push($committee,array(html_entity_decode($committee_name),$sessions_cal_link));
+            array_push( $committee, array(html_entity_decode($committee_name),$sessions_cal_link ));
         }
     }
 
     ## last step: download every single sessions page
-    foreach( $committee as  $pair ) download_sessions( $pair );
+    foreach( $committee as  $pair ) download_sessions( $pair , $folder_path);
     
 }
 
 
 ######################
-function download_sessions( $arr )
+function download_sessions( $arr , $savepath)
 {
-    $savepath = "./pages/";
+    if( is_dir($savepath) == false ) mkdir( $savepath );
     $handle = fopen( $arr[1] , "rb");
     $contents = stream_get_contents($handle);
     fclose($handle);
     
-    $filename = $savepath . str_replace(' ','_',$arr[0]);
+    $filename = $arr[0];
+    $filename = str_replace(' ','_',$filename);
+    $filename = str_replace('/','_',$filename);
+    $filename = str_replace('\\','_',$filename);
+    $filename = $savepath . $filename;
     echo "\nWrite: $filename";
     file_put_contents( $filename, $contents );
 }
@@ -205,6 +224,7 @@ function get_tds( $tr )
         $end    = strpos( $tr, '</td>', $start);
         if( $end == false ) break;
         $td = substr($tr, strpos($tr,'>',$start)+1, $end-$start);
+        $td = html_entity_decode( $td );
         array_push($arr,$td);
     }
     return $arr;
