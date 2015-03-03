@@ -1,16 +1,17 @@
 <?php
 $url = 'http://ratsinfo.dresden.de/gr0040.php';
-$folder = "./pages/";
+$dl_folder = "./pages/";
+$ical_folder = "./ical/";
 
-download_all_overviews( $url, $folder );
-$all_dates = scrape_files( $folder );
+download_all_overviews( $url, $dl_folder );
+$all_dates = scrape_files( $dl_folder );
 
 //write json file
 $json = json_encode($all_dates); 
 file_put_contents('dates.json2',$json);
 
 //write ical file
-$paths = build_ical($all_dates, $folder);
+$paths = build_ical($all_dates, $ical_folder);
 save_paths($paths);
 
 
@@ -55,8 +56,8 @@ function build_ical( $all_dates , $ical_folder )
                     "\nUID:".md5( $committee['committee'].$session ).
                     '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
                     "\nLOCATION:".
-                    "\nSUMMARY:".
-                    "\nDESCRIPTION: ".$committee['committee'].
+                    "\nSUMMARY: sum ".$committee['committee'].
+                    "\nDESCRIPTION: desc: ".$committee['committee'].
                     "\nCLASS:PUBLIC".
                     "\nDTSTART:".getIcalDate( $session ).
                     "\nDTEND:".getIcalDate( $session + 7200 ).
@@ -122,7 +123,7 @@ function scrape_files()
             else array_push( $dates, $uxts );
         }
         
-        array_push( $all_dates, array( 'committee'=> $committee, 'dates' => $dates, 'filename' => $file ) );
+        array_push( $all_dates, array( 'committee'=> "Sitzung: $committee", 'dates' => $dates, 'filename' => $file ) );
     }
 
     if(count($all_dates) > 0 ) return $all_dates;
@@ -137,7 +138,8 @@ function get_comm( $str )
 {
     $start = stripos( $str, '<title>' ) + 7;
     $end = stripos( $str, '</title>', $start );
-    $str = substr( $str, $start, $end - $start );
+    $str = html_entity_decode( substr( $str, $start, $end - $start ) );
+    
     return trim( $str );
 }
     
@@ -196,7 +198,7 @@ function download_sessions( $arr , $savepath)
     fclose($handle);
     
     if( is_dir($savepath) == false ) mkdir( $savepath );
-    $filename = $savepath . $arr[0];
+    $filename = $savepath . str_replace(' ','_',$arr[0]);
     echo "\nWrite: $filename";
     file_put_contents( $filename, $contents );
 }
