@@ -1,28 +1,34 @@
+<?php 
+    ini_set('display_errors',true);
+    error_reporting(E_ALL);
+?>
 <html>
 
 <h1>Sitzungsplan Stadtrat Dresden</h1>
 
-Mit den hier veröffentlichten links können sie sich alle kommenden Sitzungen des Dresdner Stadtrats und seiner Gremien als Termin in ihren elektonischen Kalender automatisch eintragen lassen. Diese werden täglich aktualisiert.
-
-<h1> ical: </h1>
-<ul>
-<li> <a href="boogie.eltanin.uberspace.de/staDDrat/ical/Stadtrat.ical"> Stadrat Dresden </a> </li>
-<li> <a href="boogie.eltanin.uberspace.de/staDDrat/ical/Ausländerbeirat.ical"> Ausländerbeirat </a> </li>
-</ul>
+Mit den hier veröffentlichten links können alle kommenden Sitzungen des Dresdner Stadtrats 
+und seiner Gremien als Termin in ihrem elektronischen Kalender abboniert werden. 
+Diese werden täglich aktualisiert.
 
 
 <div id="icallist">
- <?php
-    printAllIcal();
- ?>
-<div>
+    <ul>
+       <?php
+            printAllIcal();
+        ?>
+    <ul>
+ <div>
 </html>
 
 <?php
 function printAllIcal()
 {
-   $json_icals = file_get_contents('icals.json');
+   $json_icals = file_get_contents('icals_paths.json');
    $icals = json_decode( $json_icals );
-   print_r($icals);
+   foreach( $icals AS $ical)
+   {
+        $ical_str = substr($ical, strrpos($ical,'/')+1);
+        echo "<li><a href='$ical'> $ical_str </a>";
+   }
 }
 ?>

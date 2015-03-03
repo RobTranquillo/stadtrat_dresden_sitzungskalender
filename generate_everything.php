@@ -2,7 +2,7 @@
 $url = 'http://ratsinfo.dresden.de/gr0040.php';
 $folder = "./pages/";
 
-#download_all_overviews( $url, $folder );
+download_all_overviews( $url, $folder );
 $all_dates = scrape_files( $folder );
 
 //write json file
@@ -10,16 +10,28 @@ $json = json_encode($all_dates);
 file_put_contents('dates.json2',$json);
 
 //write ical file
-build_ical($all_dates);
+$paths = build_ical($all_dates, $folder);
+save_paths($paths);
 
+
+
+######################
+# adds the array with the paths as json behind 
+# the ical files hiself for a static access from index.php
+function save_paths($paths)
+{
+    if(count($paths) > 0 ) 
+    {
+        file_put_contents("icals_paths.json", json_encode($paths));
+    }
+}
 
 ######################
 # create the icalendars from a array
 # writes one file for ervery commitee
 # and one file for all commitees   
-function build_ical( $all_dates )
+function build_ical( $all_dates , $ical_folder )
 {
-    $ical_folder  = './ical/';
     if( is_dir($ical_folder) == false ) mkdir($ical_folder);
     
     function getIcalDate($time)
@@ -27,6 +39,7 @@ function build_ical( $all_dates )
         return date('Ymd\THis', $time);
     }
 
+    $paths = array();
     $out = '';
     foreach( $all_dates AS $committee )
     {
@@ -39,7 +52,7 @@ function build_ical( $all_dates )
         foreach( $committee['dates'] AS $session )
         {
             $out .= "\nBEGIN:VEVENT".
-                    "\nUID:".md5( $committee.$session ).
+                    "\nUID:".md5( $committee['committee'].$session ).
                     '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
                     "\nLOCATION:".
                     "\nSUMMARY:".
@@ -54,31 +67,16 @@ function build_ical( $all_dates )
         $out .= "\nEND:VCALENDAR";
         
         $filename = $ical_folder . $committee['filename'] .'.ical';
-        file_put_contents( $filename, $out );
+        if( file_put_contents( $filename, $out ) != false )
+            array_push($paths, $filename);
+        
         
     }
 
-    file_put_contents( 'all.ical', $out );
+    if( file_put_contents( $ical_folder.'all.ical', $out ) != false )
+        array_push($paths, $ical_folder.'all.ical');
 
-    
-/*
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:http://www.example.com/calendarapplication/
-METHOD:PUBLISH
-BEGIN:VEVENT
-UID:461092315540@example.com
-ORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de
-LOCATION:
-SUMMARY:
-DESCRIPTION:
-CLASS:PUBLIC
-DTSTART:20060910T220000Z
-DTEND:20060919T215900Z
-DTSTAMP:20060812T125900Z
-END:VEVENT
-END:VCALENDAR
- */
+    return $paths;
 }
 
     
@@ -86,7 +84,7 @@ END:VCALENDAR
 # gets all session dates from the files in 
 function scrape_files()
 {
-    $folder = './pages/';
+    $folder = 'pages/';
     $files = scandir($folder);
     $files = array_slice($files, 2); //cut away . and .. 
     date_default_timezone_set('Europe/Berlin');
