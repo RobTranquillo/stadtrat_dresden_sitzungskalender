@@ -67,15 +67,15 @@ function build_ical( $all_dates , $ical_folder )
         }
         $out .= "\nEND:VCALENDAR";
         
-        $filename = $ical_folder . $committee['filename'] .'.ical';
+        $filename = $ical_folder . $committee['filename'] .'.ics';
         if( file_put_contents( $filename, $out ) != false )
             array_push($paths, $filename);
         
         
     }
 
-    if( file_put_contents( $ical_folder.'all.ical', $out ) != false )
-        array_push($paths, $ical_folder.'all.ical');
+    if( file_put_contents( $ical_folder.'all.ics', $out ) != false )
+        array_push($paths, $ical_folder.'all.ics');
 
     return $paths;
 }
@@ -180,25 +180,25 @@ function download_all_overviews( $url , $folder_path )
             $sessions_cal_end = strpos($tds[3],'"', $sessions_cal_start);
             $sessions_cal_link = substr($tds[3], $sessions_cal_start, $sessions_cal_end - $sessions_cal_start); 
             $sessions_cal_link = 'http://ratsinfo.dresden.de/' . html_entity_decode($sessions_cal_link);
-            array_push( $committee, array($committee_name, $sessions_cal_link ));
+            array_push( $committee, $sessions_cal_link );
         }
     }
 
     ## last step: download every single sessions page
-    foreach( $committee as  $pair ) download_sessions( $pair , $folder_path);
+    foreach( $committee as  $link ) download_sessions( $link , $folder_path);
     
 }
 
 
 ######################
-function download_sessions( $arr , $savepath)
+function download_sessions( $link , $savepath)
 {
-    $handle = fopen( $arr[1] , "rb");
+    $handle = fopen( $link , "rb");
     $contents = stream_get_contents($handle);
     fclose($handle);
-    
+
     if( is_dir($savepath) == false ) mkdir( $savepath );
-    $filename = $savepath . str_replace(' ','_',$arr[0]);
+    $filename = $savepath . 'kgrnr'. substr($link, strripos($link,'=')+1);
     echo "\nWrite: $filename";
     file_put_contents( $filename, $contents );
 }
