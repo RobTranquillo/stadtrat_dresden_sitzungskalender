@@ -47,14 +47,14 @@ function build_ical( $all_dates , $ical_folder )
         $out .= 'BEGIN:VCALENDAR'.
                 "\nVERSION:2.0".
                 "\nPRODID:https://github.com/RobTranquillo/stadtrat_dresden_sitzungsplan/".
-                "\nMETHOD:PUBLISH".
-                "\n\n";
+                "\nMETHOD:PUBLISH"
+                ;
         
         foreach( $committee['dates'] AS $session )
         {
             $out .= "\nBEGIN:VEVENT".
                     "\nUID:".md5( $committee['committee'].$session ).
-                    '\nORGANIZER;CN="Rob Tranquillo, offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
+                    "\nORGANIZER:CN=\"Rob Tranquillo, http://offenesdresden.de\":MAILTO:rob.tranquillo@gmx.de".
                     "\nLOCATION:".
                     "\nSUMMARY: sum ".$committee['committee'].
                     "\nDESCRIPTION: desc: ".$committee['committee'].
@@ -62,16 +62,14 @@ function build_ical( $all_dates , $ical_folder )
                     "\nDTSTART:".getIcalDate( $session ).
                     "\nDTEND:".getIcalDate( $session + 7200 ).
                     "\nDTSTAMP:".getIcalDate( mktime() ).
-                    "\nEND:VEVENT".
-                    "\n\n";
+                    "\nEND:VEVENT"
+                    ;
         }
         $out .= "\nEND:VCALENDAR";
         
         $filename = $ical_folder . $committee['filename'] .'.ics';
         if( file_put_contents( $filename, $out ) != false )
             array_push($paths, $filename);
-        
-        
     }
 
     if( file_put_contents( $ical_folder.'all.ics', $out ) != false )
