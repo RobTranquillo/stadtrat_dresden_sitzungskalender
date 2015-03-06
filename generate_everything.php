@@ -6,10 +6,6 @@ $ical_folder = "./ical/";
 #download_all_overviews( $url, $dl_folder );
 $all_dates = scrape_files( $dl_folder );
 
-//write json file
-$json = json_encode($all_dates); 
-file_put_contents('dates.json2',$json);
-
 //write ical file
 $paths = build_ical($all_dates, $ical_folder);
 persist_paths($paths);
