@@ -3,7 +3,7 @@ $url = 'http://ratsinfo.dresden.de/gr0040.php';
 $dl_folder = "./pages/";
 $ical_folder = "./ical/";
 
-#download_all_overviews( $url, $dl_folder );
+#download_all_overviews( $url, $dl_folder ); //must not use download every time. Once the pages are downloaded, skipping this step.
 $all_dates = scrape_files( $dl_folder );
 
 //write ical file
@@ -37,18 +37,19 @@ function build_ical( $all_dates , $ical_folder )
     }
 
     $paths = array();
-    $out = '';
+    $all_dates_cal = '';
     foreach( $all_dates AS $committee )
     {
-        $out = 'BEGIN:VCALENDAR'.
+        $cal_begin = 'BEGIN:VCALENDAR'.
                 "\n".'VERSION:2.0'.
                 "\n".'PRODID:https://github.com/RobTranquillo/stadtrat_dresden_sitzungsplan'.
                 "\n".'METHOD:PUBLISH'
                 ;
-        
+
+        $dates = '';
         foreach( $committee['dates'] AS $session )
         {
-            $out .= "\n".'BEGIN:VEVENT'.
+            $dates .= "\n".'BEGIN:VEVENT'.
                     "\n".'UID:'.md5( $committee['committee'].$session['date'] ).
                     "\n".'SUMMARY:'.$committee['committee'].
                     "\n".'DTSTART:'.getIcalDate( $session['date'] ).
@@ -61,14 +62,16 @@ function build_ical( $all_dates , $ical_folder )
                     "\n".'END:VEVENT'
                     ;
         }
-        $out .= "\nEND:VCALENDAR";
+        $out = $cal_begin . $dates . "\nEND:VCALENDAR";
+        $all_dates_cal .= $dates; //collect all for alle.ics 
         
         $filename = $ical_folder . $committee['filename'] .'.ics';
         if( file_put_contents( $filename, $out ) != false )
             array_push($paths, array('url'=>$filename, 'name'=>$committee['committee']));
     }
 
-    if( file_put_contents( $ical_folder.'alle.ics', $out ) != false )
+    // write all dates into one only calendar
+    if( file_put_contents( $ical_folder.'alle.ics', $cal_begin . $all_dates_cal . "\nEND:VCALENDAR" ) != false )
         array_push($paths, array( 'url' => $ical_folder.'alle.ics', 'name' => 'Alle Gremien zusammen'));
 
     return $paths;
