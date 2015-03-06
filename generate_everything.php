@@ -3,7 +3,7 @@ $url = 'http://ratsinfo.dresden.de/gr0040.php';
 $dl_folder = "./pages/";
 $ical_folder = "./ical/";
 
-download_all_overviews( $url, $dl_folder );
+#download_all_overviews( $url, $dl_folder );
 $all_dates = scrape_files( $dl_folder );
 
 //write json file
@@ -44,25 +44,25 @@ function build_ical( $all_dates , $ical_folder )
     $out = '';
     foreach( $all_dates AS $committee )
     {
-        $out .= 'BEGIN:VCALENDAR'.
-                "\nVERSION:2.0".
-                "\nPRODID:https://github.com/RobTranquillo/stadtrat_dresden_sitzungsplan/".
-                "\nMETHOD:PUBLISH"
+        $out = 'BEGIN:VCALENDAR'.
+                "\n".'VERSION:2.0'.
+                "\n".'PRODID:https://github.com/RobTranquillo/stadtrat_dresden_sitzungsplan'.
+                "\n".'METHOD:PUBLISH'
                 ;
         
         foreach( $committee['dates'] AS $session )
         {
-            $out .= "\nBEGIN:VEVENT".
-                    "\nUID:".md5( $committee['committee'].$session ).
-                    "\nORGANIZER:CN=\"Rob Tranquillo, http://offenesdresden.de\":MAILTO:rob.tranquillo@gmx.de".
-                    "\nLOCATION:".
-                    "\nSUMMARY: sum ".$committee['committee'].
-                    "\nDESCRIPTION: desc: ".$committee['committee'].
-                    "\nCLASS:PUBLIC".
-                    "\nDTSTART:".getIcalDate( $session ).
-                    "\nDTEND:".getIcalDate( $session + 7200 ).
-                    "\nDTSTAMP:".getIcalDate( mktime() ).
-                    "\nEND:VEVENT"
+            $out .= "\n".'BEGIN:VEVENT'.
+                    "\n".'UID:'.md5( $committee['committee'].$session['date'] ).
+                    "\n".'SUMMARY:'.$committee['committee'].
+                    "\n".'DTSTART:'.getIcalDate( $session['date'] ).
+                    "\n".'DTEND:'.getIcalDate( $session['date'] + 7200 ).
+                    "\n".'DTSTAMP:'.getIcalDate( mktime() ).
+                    "\n".'DESCRIPTION:'.$committee['committee'].
+                    "\n".'LOCATION:'. html_entity_decode( $session['location'] ).
+                    "\n".'ORGANIZER:CN="Rob Tranquillo, http://offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
+                    "\n".'CLASS:PUBLIC'.
+                    "\n".'END:VEVENT'
                     ;
         }
         $out .= "\nEND:VCALENDAR";
@@ -103,14 +103,15 @@ function scrape_files()
             $end = strpos($html, '</td>', $start);
             if( $end === false ) break;
             $start = strpos($html,'>',$start)+1;
-            $td = substr($html, $start, $end-$start);
+            $td_date = substr($html, $start, $end-$start);
+            $td_loca = substr($html, $end+5);
 
-            //dates with links are shurly in the past an all next dates in th document also
-            if( substr_count( $td, '<a ' )) break; 
+            //dates with links are shurly in the past and all next dates in th document also
+            if( substr_count( $td_date, '<a ' )) break; 
 
             //clean line from SMCINFO-tag
-            $dateStr = trim( substr( $td, 0, strpos($td,'<!')));
-            $timeStr = substr( $td, strpos($td,'->')+2);
+            $dateStr = trim( substr( $td_date, 0, strpos($td_date,'<!')));
+            $timeStr = substr( $td_date, strpos($td_date,'->')+2);
             $timeStr = explode('-', $timeStr );  $timeStr = trim($timeStr[0]);  //sometimes the date is served in from-to Format, so we only want the starttime 
         
             // convert to unix timestamp
@@ -118,10 +119,16 @@ function scrape_files()
             $time = explode(':', $timeStr);
             $uxts = mktime( $time[0],$time[1],0,$date[1],$date[0],$date[2] );
             if( date("d.m.Y H:i", $uxts) != $dateStr.' '.$timeStr) echo ' error while getting date! ';
-            else array_push( $dates, $uxts );
+
+            //get location
+            $location = substr($td_loca, 4, stripos($td_loca, '</td>')-4 );
+            $location = str_replace('<br />','\n', $location);
+            $location = str_replace("\n",'', $location);
+
+            array_push( $dates, array('date'=>$uxts, 'location'=>$location ) );
         }
         
-        array_push( $all_dates, array( 'committee'=> "Sitzung: $committee", 'dates' => $dates, 'filename' => $file ) );
+        array_push( $all_dates, array( 'committee'=> $committee, 'dates' => $dates, 'filename' => $file ) );
     }
 
     if(count($all_dates) > 0 ) return $all_dates;
@@ -196,7 +203,7 @@ function download_sessions( $link , $savepath)
     fclose($handle);
 
     if( is_dir($savepath) == false ) mkdir( $savepath );
-    $filename = $savepath . 'kgrnr'. substr($link, strripos($link,'=')+1);
+    $filename = $savepath . 'Gremium_'. substr($link, strripos($link,'=')+1);
     echo "\nWrite: $filename";
     file_put_contents( $filename, $contents );
 }
