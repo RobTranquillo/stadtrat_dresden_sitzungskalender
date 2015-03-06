@@ -12,14 +12,14 @@ file_put_contents('dates.json2',$json);
 
 //write ical file
 $paths = build_ical($all_dates, $ical_folder);
-save_paths($paths);
+persist_paths($paths);
 
 
 
 ######################
 # adds the array with the paths as json behind 
 # the ical files hiself for a static access from index.php
-function save_paths($paths)
+function persist_paths($paths)
 {
     if(count($paths) > 0 ) 
     {
@@ -69,11 +69,11 @@ function build_ical( $all_dates , $ical_folder )
         
         $filename = $ical_folder . $committee['filename'] .'.ics';
         if( file_put_contents( $filename, $out ) != false )
-            array_push($paths, $filename);
+            array_push($paths, array('url'=>$filename, 'name'=>$committee['committee']));
     }
 
-    if( file_put_contents( $ical_folder.'all.ics', $out ) != false )
-        array_push($paths, $ical_folder.'all.ics');
+    if( file_put_contents( $ical_folder.'alle.ics', $out ) != false )
+        array_push($paths, array( 'url' => $ical_folder.'alle.ics', 'name' => 'Alle Gremien zusammen'));
 
     return $paths;
 }

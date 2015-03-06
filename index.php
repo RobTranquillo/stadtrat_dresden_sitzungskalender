@@ -14,21 +14,20 @@ Diese werden täglich aktualisiert.
 <div id="icallist">
     <ul>
        <?php
-            printAllIcal();
+            printAllDates();
         ?>
     <ul>
  <div>
 </html>
 
 <?php
-function printAllIcal()
+function printAllDates()
 {
-   $json_icals = file_get_contents('icals_paths.json');
-   $icals = json_decode( $json_icals );
-   foreach( $icals AS $ical)
-   {
-        $ical_str = substr($ical, strrpos($ical,'/')+1);
-        echo "<li><a href='$ical'> $ical_str </a>";
+   $json_dates = file_get_contents('icals_paths.json');
+   $dates = json_decode( $json_dates );
+   foreach( $dates AS $date )
+   {       
+        echo "<li><a href='$date->url'> $date->name </a>";
    }
 }
 ?>
