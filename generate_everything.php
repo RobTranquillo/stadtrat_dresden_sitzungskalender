@@ -1,20 +1,34 @@
 <?php
+
+if(file_exists('config.ini')) $ini_data = parse_ini_file('config.ini');
+else {
+		echo "\nScrapping process stopped. Create 'config.ini'	with a line 'report_mail = <your email>' first!\n"; 
+		exit;
+	}
+
 $url = 'http://ratsinfo.dresden.de/gr0040.php';
 $dl_folder = "./pages/";
 $ical_folder = "./ical/";
 
-#download_all_overviews( $url, $dl_folder ); //must not use download every time. Once the pages are downloaded, skipping this step.
+download_all_overviews( $url, $dl_folder );
 $all_dates = scrape_files( $dl_folder );
 
 //write ical file
 $paths = build_ical($all_dates, $ical_folder);
 persist_paths($paths);
 
+//write a mail for  process reporting
+$msg = "Hallo,\n\n"
+		.count($all_dates)." Kalender wurden eingelesen. \n"
+		.count($paths)." Kalender wurden geschrieben\n\n"
+		.' --- Test: read stadtrat.ics'."\n\n"
+		.file_get_contents('ical/Gremium_1.ics');
+mail($ini_data['report_mail'], 'build msg: StaDDrat Kalender', $msg);
 
 
 ######################
 # adds the array with the paths as json behind 
-# the ical files hiself for a static access from index.php
+# the ical files itself for a static access from index.php
 function persist_paths($paths)
 {
     if(count($paths) > 0 ) 
@@ -55,9 +69,9 @@ function build_ical( $all_dates , $ical_folder )
                     "\n".'DTSTART:'.getIcalDate( $session['date'] ).
                     "\n".'DTEND:'.getIcalDate( $session['date'] + 7200 ).
                     "\n".'DTSTAMP:'.getIcalDate( mktime() ).
-                    "\n".'DESCRIPTION:'.$committee['committee'].
+                    "\n".'DESCRIPTION: Sitzung des : '.$committee['committee'].
                     "\n".'LOCATION:'. html_entity_decode( $session['location'] ).
-                    "\n".'ORGANIZER:CN="Rob Tranquillo, http://offenesdresden.de":MAILTO:rob.tranquillo@gmx.de'.
+                    "\n".'ORGANIZER:CN='.$committee['committee'].
                     "\n".'CLASS:PUBLIC'.
                     "\n".'END:VEVENT'
                     ;
