@@ -125,7 +125,7 @@ function scrape_files()
             //clean line from SMCINFO-tag
             $dateStr = trim( substr( $td_date, 0, strpos($td_date,'<!')));
             $timeStr = substr( $td_date, strpos($td_date,'->')+2);
-            $timeStr = explode('-', $timeStr );  $timeStr = trim($timeStr[0]);  //sometimes the date is served in from-to Format, so we only want the starttime 
+            $timeStr = explode('-', $timeStr );  $timeStr = trim(substr($timeStr[0],0,6));  //sometimes the date is served in from-to Format, so we only want the starttime 
         
             // convert to unix timestamp
             $date = explode('.', $dateStr);
@@ -166,7 +166,21 @@ function get_comm( $str )
 # Main Step one
 function download_all_overviews( $url , $folder_path )
 {
-    $html = file_get_contents( $url );
+    $id = get_sessionid( $url );
+    
+    // Create a stream
+    $opts = array(
+     'http'=>array(
+      'method'=>"GET",
+      'header'=>"Accept-language: en\r\n" .
+               "Cookie: PHPSESSID=$id\r\n"
+      )
+    );
+
+    $context = stream_context_create($opts);
+    $html = file_get_contents($url, false, $context);
+    $html = file_get_contents($url, false, $context); ##muss 2 mal sein! sonst lÃ¤dt er noch das falsche
+    file_put_contents("script.html", $html);
     $committee = array();
 
     $tab_start  = strpos( $html , '<table ');
@@ -203,17 +217,39 @@ function download_all_overviews( $url , $folder_path )
     }
 
     ## last step: download every single sessions page
-    foreach( $committee as  $link ) download_sessions( $link , $folder_path);
+    foreach( $committee as  $link ) download_sessions( $link , $folder_path, $context);
     
 }
 
 
-######################
-function download_sessions( $link , $savepath)
+################################
+# help function, to avoid stuck
+# in endless forward-hell
+function get_sessionid( $link )
 {
-    $handle = fopen( $link , "rb");
-    $contents = stream_get_contents($handle);
-    fclose($handle);
+        $ch = curl_init($link);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_HEADER, 1);
+        $result = curl_exec($ch);
+
+        // get cookie
+        preg_match_all('/^Set-Cookie:\s*([^;]*)/mi', $result, $matches);
+        $cookies = array();
+        foreach($matches[1] as $item) {
+                parse_str($item, $cookie);
+                $cookies = array_merge($cookies, $cookie);
+        }
+        return $cookies['PHPSESSID'];
+}
+
+
+######################
+function download_sessions( $link , $savepath, $context)
+{
+    #$handle = fopen( $link , "rb");
+    $contents = file_get_contents( $link, false, $context);
+    #$contents = stream_get_contents($handle);
+    #fclose($handle);
 
     if( is_dir($savepath) == false ) mkdir( $savepath );
     $filename = $savepath . 'Gremium_'. substr($link, strripos($link,'=')+1);
